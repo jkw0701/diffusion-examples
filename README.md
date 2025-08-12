@@ -41,8 +41,15 @@ cd diffusion-examples
 python example-circle.py
 ```
 
-3. **Optional: Check model accuracy**
-When prompted, type `y` to see detailed model prediction analysis.
+## 📈 Results 
+### Forward Process 
+<img width="900" height="450" alt="Image" src="https://github.com/user-attachments/assets/970b13a9-4844-40b2-b924-c366b1cdb37f" />
+
+### Reverse Process (Denoising process)
+<img width="900" height="450" alt="Image" src="https://github.com/user-attachments/assets/93285a37-5c6d-42fd-87eb-cee1f730a370" />
+
+### Comparison between original image and generated image
+<img width="900" height="300" alt="Image" src="https://github.com/user-attachments/assets/d2168026-c130-4785-8584-a3b1ce0bdeb7" />   
 
 ## 📚 Further Reading
 
