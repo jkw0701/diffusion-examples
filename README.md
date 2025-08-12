@@ -41,8 +41,9 @@ cd diffusion-examples
 python example-circle.py
 ```
 
-3. **Optional: Check model accuracy**
-When prompted, type `y` to see detailed model prediction analysis.
+3. **Results**
+<img width="400" height="200" alt="Image" src="https://github.com/user-attachments/assets/970b13a9-4844-40b2-b924-c366b1cdb37f" />
+   
 
 ## 📚 Further Reading
 
