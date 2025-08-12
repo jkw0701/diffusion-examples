@@ -14,7 +14,7 @@ This repository contains a minimal implementation of a diffusion model that:
 
 ### Forward Process (Adding Noise)
 ```
-Ex. Clean Circle → Slightly Noisy → More Noise → ... → Pure Gaussian Noise
+Clean Circle → Slightly Noisy → More Noise → ... → Pure Gaussian Noise
 ```
 
 ### Reverse Process (Denoising)
@@ -56,7 +56,7 @@ Contributions are welcome!
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License
 
 ## 📧 Contact
 
