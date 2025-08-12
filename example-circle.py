@@ -21,7 +21,8 @@ class ToyDataset(Dataset):
         x = radius * np.cos(angles)
         y = radius * np.sin(angles)
         
-        data = np.stack([x, y], axis=1).astype(np.float32)
+        # [[x1,y1], [x2,y2], [x3,y3], ...]
+        data = np.stack([x, y], axis=1).astype(np.float32) 
         return data
     
     def __len__(self):
@@ -37,9 +38,9 @@ class SimpleMLP(nn.Module):
         
         # Time embedding
         self.time_embed = nn.Sequential(
-            nn.Linear(1, time_dim),
-            nn.SiLU(),
-            nn.Linear(time_dim, time_dim)
+            nn.Linear(1, time_dim), # x = nn.Linear(1, 16)
+            nn.SiLU(), # x.shape = (256, 16) 
+            nn.Linear(time_dim, time_dim) # 
         )
         
         # Main network
@@ -55,6 +56,7 @@ class SimpleMLP(nn.Module):
     
     def forward(self, x, t):
         # t is normalized timestep in [0, 1] range
+        # t.unsqueeze(-1).shape = (256, 1)
         t_embed = self.time_embed(t.unsqueeze(-1))
         
         # Combine x and time embedding
