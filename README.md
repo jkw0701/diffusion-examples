@@ -41,7 +41,7 @@ cd diffusion-examples
 python example-circle.py
 ```
 
-3. **Results**
+## 📈 Results 
 ### Forward Process 
 <img width="900" height="450" alt="Image" src="https://github.com/user-attachments/assets/970b13a9-4844-40b2-b924-c366b1cdb37f" />
 
