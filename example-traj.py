@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 import math
 
-# 디바이스 설정
+# Device setup
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
 class ConditionalTrajectoryDataset(Dataset):
-    """조건부 2D 궤적 패턴 데이터셋"""
+    """Conditional 2D trajectory pattern dataset"""
     
     def __init__(self, num_samples=1000, seq_length=64, pattern_types=['circle', 'spiral', 'figure8', 'line']):
         self.num_samples = num_samples
@@ -23,7 +23,7 @@ class ConditionalTrajectoryDataset(Dataset):
         self.trajectories = self._normalize_data(self.trajectories)
     
     def _normalize_data(self, data):
-        """데이터를 [-3, 3] 범위로 정규화"""
+        """Normalize data to [-3, 3] range"""
         all_points = data.reshape(-1, 2)
         min_vals = all_points.min(axis=0)
         max_vals = all_points.max(axis=0)
@@ -55,7 +55,7 @@ class ConditionalTrajectoryDataset(Dataset):
         return np.array(trajectories), np.array(pattern_labels)
     
     def _generate_circle(self):
-        """원형 궤적 생성"""
+        """Generate circular trajectory"""
         t = np.linspace(0, 2*np.pi, self.seq_length)
         radius = np.random.uniform(1.0, 3.0)
         center_x = np.random.uniform(-2, 2)
@@ -67,7 +67,7 @@ class ConditionalTrajectoryDataset(Dataset):
         return np.column_stack([x, y])
     
     def _generate_spiral(self):
-        """나선형 궤적 생성"""
+        """Generate spiral trajectory"""
         t = np.linspace(0, 4*np.pi, self.seq_length)
         radius_growth = np.random.uniform(0.1, 0.4)
         
@@ -77,7 +77,7 @@ class ConditionalTrajectoryDataset(Dataset):
         return np.column_stack([x, y])
     
     def _generate_figure8(self):
-        """8자 모양 궤적 생성"""
+        """Generate figure-8 trajectory"""
         t = np.linspace(0, 2*np.pi, self.seq_length)
         scale = np.random.uniform(2.0, 4.0)
         
@@ -87,7 +87,7 @@ class ConditionalTrajectoryDataset(Dataset):
         return np.column_stack([x, y])
     
     def _generate_line(self):
-        """직선 궤적 생성"""
+        """Generate straight line trajectory"""
         start_x = np.random.uniform(-4, 4)
         start_y = np.random.uniform(-4, 4)
         end_x = np.random.uniform(-4, 4)
@@ -122,7 +122,7 @@ class TimeEmbedding(nn.Module):
 
 
 class ConditionalResidualBlock(nn.Module):
-    """조건부 1D Residual Block"""
+    """Conditional 1D Residual Block"""
     def __init__(self, in_channels, out_channels, time_emb_dim, num_classes=4, kernel_size=3):
         super().__init__()
         
@@ -132,7 +132,7 @@ class ConditionalResidualBlock(nn.Module):
             nn.Linear(time_emb_dim, out_channels)
         )
         
-        # Class embedding (패턴 타입)
+        # Class embedding (pattern type)
         self.class_emb = nn.Embedding(num_classes, time_emb_dim)
         
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size//2)
@@ -158,7 +158,7 @@ class ConditionalResidualBlock(nn.Module):
         h = self.norm1(h)
         h = self.activation(h)
         
-        # Time + Class embedding 결합
+        # Combine Time + Class embedding
         class_emb = self.class_emb(class_labels)  # [batch_size, time_emb_dim]
         combined_emb = time_emb + class_emb       # [batch_size, time_emb_dim]
         emb = self.time_mlp(combined_emb)         # [batch_size, out_channels]
@@ -172,7 +172,7 @@ class ConditionalResidualBlock(nn.Module):
 
 
 class ConditionalUNet1D(nn.Module):
-    """조건부 1D U-Net"""
+    """Conditional 1D U-Net"""
     
     def __init__(self, in_channels=2, out_channels=2, seq_length=64, time_emb_dim=128, num_classes=4):
         super().__init__()
@@ -240,13 +240,13 @@ class ConditionalUNet1D(nn.Module):
 
 
 class ConditionalDiffusionTrainer:
-    """조건부 디퓨전 모델 훈련 클래스"""
+    """Conditional diffusion model trainer"""
     
     def __init__(self, model, num_timesteps=1000, beta_start=0.00001, beta_end=0.008):
         self.model = model
         self.num_timesteps = num_timesteps
         
-        # 더 부드러운 노이즈 스케줄
+        # Smoother noise schedule
         self.betas = torch.linspace(beta_start, beta_end, num_timesteps).to(device)
         self.alphas = 1.0 - self.betas
         self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
@@ -264,26 +264,26 @@ class ConditionalDiffusionTrainer:
         return sqrt_alphas_cumprod_t * x0 + sqrt_one_minus_alphas_cumprod_t * noise, noise
     
     def train_step(self, batch, optimizer):
-        """훈련 스텝"""
+        """Training step"""
         trajectories, class_labels = batch
         trajectories = trajectories.to(device)
         class_labels = class_labels.squeeze(-1).to(device)  # [batch_size]
         
         batch_size = trajectories.shape[0]
         
-        # 랜덤 타임스텝
+        # Random timestep
         t = torch.randint(0, self.num_timesteps, (batch_size,), device=device)
         
-        # 노이즈 추가
+        # Add noise
         noisy_x, noise = self.add_noise(trajectories, t)
         
-        # 노이즈 예측 (조건부)
+        # Predict noise (conditional)
         predicted_noise = self.model(noisy_x, t, class_labels)
         
-        # 손실 계산
+        # Compute loss
         loss = nn.MSELoss()(predicted_noise, noise)
         
-        # 역전파
+        # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
@@ -292,41 +292,41 @@ class ConditionalDiffusionTrainer:
         return loss.item()
     
     def ddim_sample(self, shape, class_labels, num_inference_steps=50, eta=0.0):
-        """DDIM 샘플링 (결정론적, 부드러운 결과)"""
+        """DDIM sampling (deterministic, smooth results)"""
         self.model.eval()
         
         batch_size = shape[0]
         
-        # 순수 노이즈에서 시작
+        # Start from pure noise
         x = torch.randn(shape, device=device)
         
-        # DDIM 타임스텝 (균등 간격)
+        # DDIM timesteps (evenly spaced)
         timesteps = torch.linspace(self.num_timesteps - 1, 0, num_inference_steps).long().to(device)
         
         with torch.no_grad():
             for i, t in enumerate(timesteps):
                 t_batch = torch.full((batch_size,), t, device=device)
                 
-                # 노이즈 예측
+                # Predict noise
                 predicted_noise = self.model(x, t_batch, class_labels)
                 
-                # DDIM 업데이트
+                # DDIM update
                 alpha_t = self.alphas_cumprod[t]
                 if i < len(timesteps) - 1:
                     alpha_t_prev = self.alphas_cumprod[timesteps[i + 1]]
                 else:
                     alpha_t_prev = torch.tensor(1.0, device=device)
                 
-                # x_0 예측
+                # Predict x_0
                 pred_x0 = (x - torch.sqrt(1 - alpha_t) * predicted_noise) / torch.sqrt(alpha_t)
                 pred_x0 = torch.clamp(pred_x0, -4, 4)
                 
-                # DDIM 공식
+                # DDIM formula
                 if i < len(timesteps) - 1:
-                    # 결정론적 방향
+                    # Deterministic direction
                     dir_xt = torch.sqrt(1 - alpha_t_prev) * predicted_noise
                     
-                    # 확률적 노이즈 (eta=0이면 완전 결정론적)
+                    # Stochastic noise (eta=0 for fully deterministic)
                     if eta > 0:
                         sigma = eta * torch.sqrt((1 - alpha_t_prev) / (1 - alpha_t)) * torch.sqrt(1 - alpha_t / alpha_t_prev)
                         noise = torch.randn_like(x)
@@ -341,28 +341,28 @@ class ConditionalDiffusionTrainer:
 
 
 def train_conditional_unet():
-    """조건부 U-Net 훈련"""
-    print("조건부 U-Net + DDIM 샘플링 훈련 시작...")
+    """Train conditional U-Net"""
+    print("Training conditional U-Net + DDIM sampling...")
     
-    # 조건부 데이터셋
+    # Conditional dataset
     dataset = ConditionalTrajectoryDataset(num_samples=2000, seq_length=64)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
     
-    print(f"패턴 타입: {dataset.pattern_types}")
-    print(f"데이터셋 크기: {len(dataset)}")
+    print(f"Pattern types: {dataset.pattern_types}")
+    print(f"Dataset size: {len(dataset)}")
     
-    # 조건부 모델
+    # Conditional model
     model = ConditionalUNet1D(in_channels=2, out_channels=2, seq_length=64, 
                              time_emb_dim=128, num_classes=4).to(device)
     trainer = ConditionalDiffusionTrainer(model, num_timesteps=1000)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
     
-    # 훈련
+    # Training
     num_epochs = 100
     losses = []
     
-    print("훈련 시작...")
+    print("Starting training...")
     for epoch in range(num_epochs):
         epoch_losses = []
         
@@ -378,9 +378,9 @@ def train_conditional_unet():
         losses.append(avg_loss)
         
         if (epoch + 1) % 20 == 0:
-            print(f"Epoch {epoch+1} 완료, 평균 Loss: {avg_loss:.6f}")
+            print(f"Epoch {epoch+1} completed, Average Loss: {avg_loss:.6f}")
             
-            # 중간 테스트: 각 패턴별로 생성
+            # Intermediate test: generate each pattern
             with torch.no_grad():
                 for pattern_id, pattern_name in enumerate(dataset.pattern_types):
                     class_labels = torch.full((1,), pattern_id, device=device)
@@ -392,10 +392,10 @@ def train_conditional_unet():
 
 
 def visualize_conditional_results(model, trainer, dataset, losses):
-    """조건부 모델 결과 시각화"""
+    """Visualize conditional model results"""
     plt.figure(figsize=(15, 12))
     
-    # 1. 손실 곡선
+    # 1. Loss curve
     plt.subplot(3, 3, 1)
     plt.plot(losses)
     plt.title('Training Loss')
@@ -404,7 +404,7 @@ def visualize_conditional_results(model, trainer, dataset, losses):
     plt.grid(True)
     plt.yscale('log')
     
-    # 2. 원본 궤적들
+    # 2. Original trajectories
     plt.subplot(3, 3, 2)
     colors = ['red', 'blue', 'green', 'orange']
     for i in range(8):
@@ -417,14 +417,14 @@ def visualize_conditional_results(model, trainer, dataset, losses):
     plt.grid(True)
     plt.axis('equal')
     
-    # 3-6. 각 패턴별 생성 결과
+    # 3-6. Generated results for each pattern
     pattern_names = dataset.pattern_types
     
     for pattern_id, pattern_name in enumerate(pattern_names):
         plt.subplot(3, 3, 3 + pattern_id)
         
         try:
-            # 해당 패턴 조건으로 생성
+            # Generate with pattern condition
             class_labels = torch.full((4,), pattern_id, device=device)
             generated = trainer.ddim_sample((4, 64, 2), class_labels, num_inference_steps=50, eta=0.0)
             
@@ -442,12 +442,12 @@ def visualize_conditional_results(model, trainer, dataset, losses):
         except Exception as e:
             plt.text(0.5, 0.5, f'Error:\n{str(e)}', ha='center', va='center', transform=plt.gca().transAxes)
     
-    # 7. 원본 vs 생성 비교
+    # 7. Original vs Generated comparison
     plt.subplot(3, 3, 7)
     
-    # 원본 (각 패턴별 1개씩)
+    # Original (one for each pattern)
     for pattern_id, pattern_name in enumerate(pattern_names):
-        # 해당 패턴의 원본 찾기
+        # Find original pattern
         for i in range(len(dataset)):
             if dataset[i][1].item() == pattern_id:
                 traj = dataset[i][0].numpy()
@@ -462,12 +462,12 @@ def visualize_conditional_results(model, trainer, dataset, losses):
     plt.grid(True)
     plt.axis('equal')
     
-    # 8. DDIM vs DDPM 비교
+    # 8. DDIM vs DDPM comparison
     plt.subplot(3, 3, 8)
     
     try:
-        # DDIM (결정론적)
-        class_labels = torch.full((2,), 0, device=device)  # 원 패턴
+        # DDIM (deterministic)
+        class_labels = torch.full((2,), 0, device=device)  # Circle pattern
         ddim_samples = trainer.ddim_sample((2, 64, 2), class_labels, num_inference_steps=50, eta=0.0)
         
         for i in range(2):
@@ -484,7 +484,7 @@ def visualize_conditional_results(model, trainer, dataset, losses):
     except Exception as e:
         plt.text(0.5, 0.5, f'DDIM Error:\n{str(e)}', ha='center', va='center', transform=plt.gca().transAxes)
     
-    # 9. 모든 패턴 혼합 생성
+    # 9. All patterns mixed generation
     plt.subplot(3, 3, 9)
     
     try:
@@ -510,22 +510,22 @@ def visualize_conditional_results(model, trainer, dataset, losses):
 
 
 if __name__ == "__main__":
-    print("=== 조건부 U-Net + DDIM 샘플링 ===")
-    print("1. 조건부 생성: 각 패턴 타입을 조건으로 제공")
-    print("2. DDIM 샘플링: 결정론적 샘플링으로 부드러운 결과\n")
+    print("=== Conditional U-Net + DDIM Sampling ===")
+    print("1. Conditional Generation: Provide pattern type as condition")
+    print("2. DDIM Sampling: Deterministic sampling for smooth results\n")
     
-    # 훈련
+    # Training
     model, trainer, losses, dataset = train_conditional_unet()
     
-    # 시각화
-    print("\n결과 시각화...")
+    # Visualization
+    print("\nVisualizing results...")
     visualize_conditional_results(model, trainer, dataset, losses)
     
-    # 최종 테스트
-    print("\n=== 패턴별 생성 테스트 ===")
+    # Final test
+    print("\n=== Pattern-wise Generation Test ===")
     try:
         for pattern_id, pattern_name in enumerate(dataset.pattern_types):
-            print(f"\n{pattern_name.upper()} 패턴 생성:")
+            print(f"\n{pattern_name.upper()} pattern generation:")
             
             class_labels = torch.full((3,), pattern_id, device=device)
             samples = trainer.ddim_sample((3, 64, 2), class_labels, num_inference_steps=50, eta=0.0)
@@ -535,14 +535,14 @@ if __name__ == "__main__":
                 sample_np = sample.cpu().numpy()
                 if not (np.isnan(sample_np).any() or np.isinf(sample_np).any()):
                     valid_count += 1
-                    print(f"  ✅ 샘플 {i+1}: X[{sample_np[:, 0].min():.2f}, {sample_np[:, 0].max():.2f}], Y[{sample_np[:, 1].min():.2f}, {sample_np[:, 1].max():.2f}]")
+                    print(f"  ✅ Sample {i+1}: X[{sample_np[:, 0].min():.2f}, {sample_np[:, 0].max():.2f}], Y[{sample_np[:, 1].min():.2f}, {sample_np[:, 1].max():.2f}]")
                 else:
-                    print(f"  ❌ 샘플 {i+1}: 생성 실패")
+                    print(f"  ❌ Sample {i+1}: Generation failed")
             
             if valid_count == 3:
-                print(f"  🎉 {pattern_name} 패턴 완벽 생성!")
+                print(f"  🎉 {pattern_name} pattern generated perfectly!")
             
     except Exception as e:
-        print(f"❌ 패턴별 테스트 실패: {e}")
+        print(f"❌ Pattern-wise test failed: {e}")
     
-    print("\n🚀 조건부 생성 + DDIM으로 각 패턴을 명확히 구분하여 생성할 수 있습니다!")
+    print("\n🚀 Conditional generation + DDIM enables clear pattern distinction!")
