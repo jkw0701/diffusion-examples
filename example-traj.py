@@ -13,7 +13,7 @@ print(f"Using device: {device}")
 class ConditionalTrajectoryDataset(Dataset):
     """Conditional 2D trajectory pattern dataset"""
     
-    def __init__(self, num_samples=1000, seq_length=64, pattern_types=['circle', 'spiral', 'figure8', 'line']):
+    def __init__(self, num_samples=1000, seq_length=64, pattern_types=['circle', 'spiral', 'number8', 'line']):
         self.num_samples = num_samples
         self.seq_length = seq_length
         self.pattern_types = pattern_types
@@ -45,8 +45,8 @@ class ConditionalTrajectoryDataset(Dataset):
                 traj = self._generate_circle()
             elif pattern == 'spiral':
                 traj = self._generate_spiral()
-            elif pattern == 'figure8':
-                traj = self._generate_figure8()
+            elif pattern == 'number8':
+                traj = self._generate_number8()
             elif pattern == 'line':
                 traj = self._generate_line()
             
@@ -76,7 +76,7 @@ class ConditionalTrajectoryDataset(Dataset):
         
         return np.column_stack([x, y])
     
-    def _generate_figure8(self):
+    def _generate_number8(self):
         """Generate figure-8 trajectory"""
         t = np.linspace(0, 2*np.pi, self.seq_length)
         scale = np.random.uniform(2.0, 4.0)
