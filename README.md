@@ -1,10 +1,10 @@
 # Diffusion Model Examples Collection
 
-This repository contains a comprehensive collection of step-by-step examples to learn diffusion models, from basic 2D pattern generation to real robot navigation applications.
+This repository contains a comprehensive collection of step-by-step examples to learn diffusion models.
 
 ## 🎯 Overview
 
-We provide 6 progressive examples covering various applications of diffusion models, from fundamental 2D pattern generation to practical robot navigation systems.
+We provide 6 progressive examples covering various applications of diffusion models, from fundamental 2D pattern generation to practical planar robot systems.
 
 ## 📋 Example List
 
